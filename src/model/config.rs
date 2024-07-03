@@ -25,10 +25,10 @@ impl ImageClassificationConfig {
             convulational1: Conv2dConfig::new([1, 8], [3, 3]).init(device),
             convulational2: Conv2dConfig::new([8, 16], [3, 3]).init(device),
             pool: AdaptiveAvgPool2dConfig::new([8, 8]).init(),
-            dropout: DropoutConfig::new(self.dropout).init(),
+            activation: Relu::new(),
             linear1: LinearConfig::new(16 * 8 * 8, self.hidden_size).init(device),
             linear2: LinearConfig::new(self.hidden_size, self.num_classes).init(device),
-            activation: Relu::new()
+            dropout: DropoutConfig::new(self.dropout).init()
         }
     }
 }

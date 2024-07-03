@@ -22,7 +22,7 @@ impl<B: Backend> ImageClassificationModel<B> {
         let x = self.activation.forward(x); // Output: [batch_size, 16, 8, 8]
 
         let x = self.pool.forward(x); // Output: [batch_size, 16, 8, 8]
-        let x = x.reshape([batch_size, 16 * 8 ^ 2]);
+        let x = x.reshape([batch_size, 16 * 8 * 8]);
         let x = self.linear1.forward(x);
         let x = self.dropout.forward(x);
         let x = self.activation.forward(x);

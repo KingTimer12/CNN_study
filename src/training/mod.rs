@@ -19,8 +19,7 @@ pub fn train<B: AutodiffBackend>(dir: &str, config: TrainingConfig, device: B::D
 
     B::seed(config.seed);
 
-    let batcher_train = MnistBatcher::<B>::new(device.clone());
-    let batcher_valid = MnistBatcher::<B::InnerBackend>::new(device.clone());
+    let batcher = MnistBatcher::default();
 
     /*
     O treino apresenta os dados que realmente serão usados para produção,
@@ -30,21 +29,21 @@ pub fn train<B: AutodiffBackend>(dir: &str, config: TrainingConfig, device: B::D
     para aumentar sua precisão.
     */
 
-    let dataloader_train = DataLoaderBuilder::new(batcher_train)
+    let dataloader_train = DataLoaderBuilder::new(batcher.clone())
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
         .build(MnistDataset::train());
 
-    let dataloader_test = DataLoaderBuilder::new(batcher_valid)
+    let dataloader_test = DataLoaderBuilder::new(batcher)
         .batch_size(config.batch_size)
         .shuffle(config.seed)
         .num_workers(config.num_workers)
         .build(MnistDataset::test());
 
     /*
-    O learner é nosso "indivíduo". 
-    
+    O learner é nosso "indivíduo".
+
     Explicando de maneira bem metafórica: imagina um estudante
     indo para a escola, antes da prova, ele precisa estudar o conteúdo.
     Ele começa a praticar(treinar) e fica vendo a quantidade de erros e

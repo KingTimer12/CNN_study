@@ -1,30 +1,38 @@
-use std::path::Path;
+#![recursion_limit = "512"]
+use std::fs::create_dir;
 
-use burn::{backend::{wgpu::AutoGraphicsApi, Autodiff, Wgpu}, data::dataset::{vision::MnistDataset, Dataset}, optim::AdamConfig};
-use inference::infer;
-use model::config::ImageClassificationConfig;
-use training::{config::TrainingConfig, train};
+use burn::{
+    backend::{Autodiff, Wgpu}, data::dataset::{vision::MnistDataset, Dataset}, optim::AdamConfig
+};
 
-mod model;
+use crate::{
+    inference::infer, model::config::ImageClassificationConfig, training::{config::TrainingConfig, train}
+};
+
 mod data;
-mod training;
 mod inference;
+mod model;
+mod training;
 
 fn main() {
-    type ImageBackend = Wgpu<AutoGraphicsApi, f32, i32>;
-    type ImageAutodiffBackend = Autodiff<ImageBackend>;
+    type MyBackend = Wgpu<f32, i32>;
+    type MyAutodiffBackend = Autodiff<MyBackend>;
 
-    let artifact = "./artefact";
     let device = burn::backend::wgpu::WgpuDevice::default();
-    if !Path::new(artifact).exists() {
-        train::<ImageAutodiffBackend>(
-            &artifact, 
-            TrainingConfig::new(
-                ImageClassificationConfig::new(10, 512), 
-                AdamConfig::new()), 
-            device.clone());
+    let artifact_dir = std::path::PathBuf::from("./artifacts");
+    create_dir(&artifact_dir).ok();
+
+    if !artifact_dir.exists() {
+        let model = ImageClassificationConfig::new(10, 512);
+        train::<MyAutodiffBackend>(
+            artifact_dir.to_str().unwrap_or_default(),
+            TrainingConfig::new(model, AdamConfig::new()),
+            device,
+        );
+    } else {
+        let item = MnistDataset::test()
+            .get(44)
+            .unwrap();
+        infer::<MyAutodiffBackend>(artifact_dir.to_str().unwrap_or_default(), device, item);
     }
-    
-    let item = MnistDataset::test().get(340).unwrap();
-    infer::<ImageBackend>(&artifact, device, item)
 }

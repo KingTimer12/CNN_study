@@ -2,18 +2,18 @@ use batch::MnistBatch;
 use batcher::MnistBatcher;
 use burn::{
     data::{dataloader::batcher::Batcher, dataset::vision::MnistItem},
-    prelude::*
+    prelude::*,
 };
 
-pub mod batcher;
 pub mod batch;
+pub mod batcher;
 
-impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
-    fn batch(&self, items: Vec<MnistItem>) -> MnistBatch<B> {
+impl<B: Backend> Batcher<B, MnistItem, MnistBatch<B>> for MnistBatcher {
+    fn batch(&self, items: Vec<MnistItem>, device: &B::Device) -> MnistBatch<B> {
         let images = items
             .iter()
-            .map(|item| Data::<f32, 2>::from(item.image))
-            .map(|data| Tensor::<B, 2>::from_data(data.convert(), &self.device))
+            .map(|item| TensorData::from(item.image))
+            .map(|data| Tensor::<B, 2>::from_data(data, device))
             .map(|tensor| tensor.reshape([1, 28, 28]))
             // Normalize: make between [0,1] and make the mean=0 and std=1
             // values mean=0.1307,std=0.3081 are from the PyTorch MNIST example
@@ -23,14 +23,13 @@ impl<B: Backend> Batcher<MnistItem, MnistBatch<B>> for MnistBatcher<B> {
 
         let targets = items
             .iter()
-            .map(|item| Tensor::<B, 1, Int>::from_data(
-                Data::from([(item.label as i64).elem()]),
-                &self.device
-            ))
+            .map(|item| {
+                Tensor::<B, 1, Int>::from_data([(item.label as i64).elem::<B::IntElem>()], device)
+            })
             .collect();
 
-        let images = Tensor::cat(images, 0).to_device(&self.device);
-        let targets = Tensor::cat(targets, 0).to_device(&self.device);
+        let images = Tensor::cat(images, 0);
+        let targets = Tensor::cat(targets, 0);
 
         MnistBatch { images, targets }
     }
